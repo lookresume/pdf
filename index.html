@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta id="viewport" name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
-    <title>WebPdf解析在线</title>
-    <!--参考51前端 禁止代码 -->
+    <title>WebPdf</title>
+   <!--参考51前端 禁止代码 -->
     <script type="text/javascript">//iframe内部禁止方法
       window.onload = function() {
 
@@ -28,9 +28,6 @@
       }
 
       //iframe外部禁止
-      document.onkeydown = function() {
-        /*9:Tab键, 17：Control键, 18:Alt键, 123:F12键, 83:S键*/
-
         //禁止保存ctrl+s
         if (window.event && (window.event.ctrlKey || window.event.metaKey) && (window.event.keyCode == 83)) {
           return false;
@@ -64,8 +61,6 @@
     </style>
 </head>
 <body>
-<div id="wrap">
     <iframe src="https://myresume-1252777009.cos.ap-beijing.myqcloud.com/src/webpdf/pdf/pdf.html"></iframe>
-</div>
 </body>
 </html>
