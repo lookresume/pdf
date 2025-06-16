@@ -1,66 +1,308 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta id="viewport" name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>WebPdf</title>
-   <!--参考51前端 禁止代码 -->
-    <script type="text/javascript">//iframe内部禁止方法
-      window.onload = function() {
-
-        document.getElementById('iframe').contentDocument.onkeydown = function(ev) {
-
-          //禁止保存ctrl+s
-          if (ev && (ev.ctrlKey || ev.metaKey) && (ev.keyCode == 83)) {
-            return false;
-          }
-          //禁止F12等等~~
-          if (ev && (ev.keyCode == 123 || ev.keyCode == 8 || ev.keyCode == 9 || ev.keyCode == 13)) {
-            return false;
-          }
-
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+    
+    <!-- 增强内容安全策略 -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; frame-src https://myresume-1252777009.cos.ap-beijing.myqcloud.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'none'">
+    
+    <style>
+        /* 基础样式重置 */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
-        //禁止右键
-        document.getElementById('iframe').contentDocument.oncontextmenu = function() {
-          return false;
+        
+        /* 加载状态样式 */
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #f8f9fa;
+            z-index: 100;
+            transition: opacity 0.3s ease;
         }
-
-      }
-
-      //iframe外部禁止
-        //禁止保存ctrl+s
-        if (window.event && (window.event.ctrlKey || window.event.metaKey) && (window.event.keyCode == 83)) {
-          return false;
+        
+        #loading.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
-
-        //禁止F12等等~~
-        if (window.event && (window.event.keyCode == 123 || window.event.keyCode == 8 || window.event.keyCode == 9 || window.event.keyCode == 13)) {
-          window.event.returnValue = false;
+        
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
         }
-      }
-
-      //屏蔽右键
-      document.oncontextmenu = function(event) {
-        if (window.event) {
-          event = window.event;
+        
+        .loading-text {
+            color: #666;
+            font-size: 14px;
         }
-        try {
-          var the = event.srcElement;
-          if (! ((the.tagName == "INPUT" && the.type.toLowerCase() == "text") || the.tagName == "TEXTAREA")) {
-            return false;
-          }
-          return true;
-        } catch(e) {
-          return false;
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
-      }</script>
-	<style>
-        html,body,iframe{width: 100%;height: 100%;padding: 0;margin: 0}
-        #wrap{width: 100%;height: 100%;}
-        iframe{border: none;}
+        
+        /* iframe容器样式 */
+        #wrap {
+            width: 100%;
+            height: 100%;
+        }
+        
+        iframe {
+            border: none;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        /* 简单的PDF控制栏 */
+        .pdf-controls {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 25px;
+            z-index: 50;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .control-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 0 10px;
+            font-size: 16px;
+        }
+        
+        .control-btn:hover {
+            color: #3498db;
+        }
+        
+        .page-info {
+            padding: 0 10px;
+            min-width: 60px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
-    <iframe src="https://myresume-1252777009.cos.ap-beijing.myqcloud.com/src/webpdf/pdf/pdf.html"></iframe>
+
+    
+    <!-- PDF控制栏 -->
+    <div class="pdf-controls">
+        <button class="control-btn" id="prev-page">
+            <i class="fa fa-chevron-left"></i>
+        </button>
+        <span class="page-info" id="page-info">1/1</span>
+        <button class="control-btn" id="next-page">
+            <i class="fa fa-chevron-right"></i>
+        </button>
+    </div>
+    
+    <!-- PDF容器 -->
+    <div id="wrap">
+        <iframe id="iframe" 
+                src="https://myresume-1252777009.cos.ap-beijing.myqcloud.com/src/webpdf/pdf/pdf.html" 
+                sandbox="allow-same-origin allow-scripts" 
+                referrerpolicy="no-referrer">
+        </iframe>
+    </div>
+
+    <script>
+            
+            // 键盘事件处理函数
+            handleKeyboardEvent(e) {
+                // 禁止Ctrl+S保存
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // 禁止F12开发者工具
+                if (e.key === 'F12') {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // 禁止Ctrl+P打印
+                if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                return true;
+            },
+            
+            // 设置iframe内部安全限制
+            setupIframeSecurity() {
+                // 等待iframe加载完成
+                const iframe = document.getElementById('iframe');
+                iframe.onload = () => {
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        
+                        // 禁止键盘操作
+                        iframeDoc.addEventListener('keydown', this.handleKeyboardEvent.bind(this));
+                        
+                        // 禁止右键菜单
+                        iframeDoc.addEventListener('contextmenu', (e) => {
+                            e.preventDefault();
+                            return false;
+                        });
+                    } catch (error) {
+                        console.error('无法设置iframe安全限制:', error);
+                    }
+                };
+            },
+            
+            // 设置外部页面安全限制
+            setupExternalSecurity() {
+                // 禁止键盘操作
+                document.addEventListener('keydown', this.handleKeyboardEvent.bind(this));
+                
+                // 禁止右键菜单
+                document.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    return false;
+                });
+                
+                // 禁止复制和选择文本
+                document.addEventListener('copy', (e) => {
+                    e.preventDefault();
+                    return false;
+                });
+                
+                document.addEventListener('selectstart', (e) => {
+                    e.preventDefault();
+                    return false;
+                });
+            },
+            
+            // 设置加载指示器
+            setupLoadingIndicator() {
+                const iframe = document.getElementById('iframe');
+                const loading = document.getElementById('loading');
+                
+                // 监听iframe加载完成事件
+                iframe.onload = () => {
+                    // 添加延迟以避免快速加载时的闪烁
+                    setTimeout(() => {
+                        loading.classList.add('hidden');
+                    }, 300);
+                };
+                
+                // 添加超时处理
+                setTimeout(() => {
+                    loading.classList.add('hidden');
+                }, 10000); // 10秒超时
+            }
+        };
+        
+        // PDF控制功能
+        const pdfController = {
+            init() {
+                // 初始化控制按钮事件
+                this.setupControls();
+                
+                // 尝试与iframe通信以获取PDF控制功能
+                this.tryConnectToIframe();
+            },
+            
+            setupControls() {
+                const prevBtn = document.getElementById('prev-page');
+                const nextBtn = document.getElementById('next-page');
+                
+                prevBtn.addEventListener('click', this.navigateToPrevPage.bind(this));
+                nextBtn.addEventListener('click', this.navigateToNextPage.bind(this));
+            },
+            
+            tryConnectToIframe() {
+                const iframe = document.getElementById('iframe');
+                
+                // 等待iframe加载完成
+                iframe.onload = () => {
+                    try {
+                        // 尝试与iframe通信
+                        const iframeWindow = iframe.contentWindow;
+                        
+                        // 检测iframe是否支持PDF控制API
+                        if (iframeWindow && typeof iframeWindow.pdfApi === 'object') {
+                            // 显示控制栏
+                            document.querySelector('.pdf-controls').style.display = 'flex';
+                            
+                            // 获取PDF页数信息
+                            this.updatePageInfo(iframeWindow.pdfApi);
+                            
+                            // 设置控制按钮事件
+                            this.setupPdfControls(iframeWindow.pdfApi);
+                        }
+                    } catch (error) {
+                        console.error('无法连接到PDF查看器API:', error);
+                    }
+                };
+            },
+            
+            updatePageInfo(pdfApi) {
+                const pageInfo = document.getElementById('page-info');
+                const currentPage = pdfApi.getCurrentPage() || 1;
+                const totalPages = pdfApi.getTotalPages() || 1;
+                
+                pageInfo.textContent = `${currentPage}/${totalPages}`;
+            },
+            
+            setupPdfControls(pdfApi) {
+                const prevBtn = document.getElementById('prev-page');
+                const nextBtn = document.getElementById('next-page');
+                
+                prevBtn.addEventListener('click', () => {
+                    pdfApi.prevPage();
+                    this.updatePageInfo(pdfApi);
+                });
+                
+                nextBtn.addEventListener('click', () => {
+                    pdfApi.nextPage();
+                    this.updatePageInfo(pdfApi);
+                });
+            },
+            
+            // 这些方法在没有PDF API支持时作为备选方案
+            navigateToPrevPage() {
+                console.log('尝试上一页');
+            },
+            
+            navigateToNextPage() {
+                console.log('尝试下一页');
+            }
+        };
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            securityGuard.init();
+            pdfController.init();
+        });
+    </script>
 </body>
 </html>
