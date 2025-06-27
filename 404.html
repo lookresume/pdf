@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - 页面未找到</title>
+    <style>
+        :root {
+            --primary-color: #165DFF;
+            --text-color: #1F2937;
+            --gray-color: #6B7280;
+            --light-gray: #F3F4F6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 800px;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .error-code {
+            font-size: clamp(6rem, 25vw, 12rem);
+            font-weight: 900;
+            color: var(--light-gray);
+            margin-bottom: 1rem;
+            transition: transform 0.6s ease;
+        }
+
+        .container:hover .error-code {
+            transform: scale(1.05);
+        }
+
+        .error-message {
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s forwards 0.2s;
+        }
+
+        .error-description {
+            font-size: clamp(1rem, 3vw, 1.25rem);
+            color: var(--gray-color);
+            margin-bottom: 3rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s forwards 0.4s;
+        }
+
+        .home-button {
+            display: inline-flex;
+            align-items: center;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(22, 93, 255, 0.2);
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s forwards 0.6s;
+        }
+
+        .home-button:hover {
+            background-color: #0E42D2;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(22, 93, 255, 0.3);
+        }
+
+        .home-button svg {
+            width: 1.25em;
+            height: 1.25em;
+            margin-right: 0.5rem;
+            transition: transform 0.3s;
+        }
+
+        .home-button:hover svg {
+            transform: translateX(-3px);
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .bg-shape {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(22, 93, 255, 0.1) 0%, rgba(255, 255, 255, 0) 70%);
+            border-radius: 50%;
+            z-index: -1;
+        }
+
+        .bg-shape.top {
+            top: -150px;
+            right: -100px;
+        }
+
+        .bg-shape.bottom {
+            bottom: -150px;
+            left: -100px;
+        }
+
+        @media (max-width: 600px) {
+            .bg-shape {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="bg-shape top"></div>
+        <div class="bg-shape bottom"></div>
+        
+        <div class="error-code">404</div>
+        <h1 class="error-message">页面未找到</h1>
+        <p class="error-description">抱歉，页面不存在或已被移除。</p>
+        
+        <a href="index.html" class="home-button">
+            返回首页
+        </a>
+    </div>
+
+    <script>
+        document.querySelector('.home-button').addEventListener('click', function(e) {
+            e.preventDefault();
+            this.classList.add('scale-95');
+            setTimeout(() => {
+                this.classList.remove('scale-95');
+                window.location.href = this.href;
+            }, 200);
+        });
+    </script>
+</body>
+</html>
